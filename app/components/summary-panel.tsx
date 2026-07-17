@@ -5,6 +5,7 @@ import type { Todo } from "@prisma/client";
 import { summarizeTodos, type TodoSummary } from "@/app/actions/summarize";
 import type { SummaryPeriod } from "@/lib/prompts/summary";
 import { formatDateTime } from "@/lib/format";
+import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 import {
   seoulDateLabel,
   seoulDayRange,
@@ -14,11 +15,6 @@ import {
 
 export type SummaryView = TodoSummary & { requestedAt: string };
 export type InitialSummaries = Partial<Record<SummaryPeriod, SummaryView>>;
-
-const PERIOD_TABS: { value: SummaryPeriod; label: string }[] = [
-  { value: "day", label: "일" },
-  { value: "week", label: "주" },
-];
 
 // Model output may contain markdown bold markers — render them as <strong>
 // without pulling in a markdown library.
@@ -32,11 +28,18 @@ export default function SummaryPanel({
   initialSummaries,
   todos,
   now,
+  locale,
 }: {
   initialSummaries: InitialSummaries;
   todos: Todo[];
   now: number; // server render time — keeps render pure and hydration consistent
+  locale: Locale;
 }) {
+  const dict = dictionaries[locale].summary;
+  const PERIOD_TABS: { value: SummaryPeriod; label: string }[] = [
+    { value: "day", label: dict.dayTab },
+    { value: "week", label: dict.weekTab },
+  ];
   const [period, setPeriod] = useState<SummaryPeriod>("day");
   const [summaries, setSummaries] = useState<InitialSummaries>(initialSummaries);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +76,7 @@ export default function SummaryPanel({
       if (result.ok) {
         setSummaries((prev) => ({ ...prev, [period]: result.data }));
         if (result.cached) {
-          setInfo("할 일이 변하지 않아 마지막 요약을 다시 표시합니다.");
+          setInfo(dict.cachedNotice);
         }
       } else {
         setError(result.error);
@@ -84,10 +87,10 @@ export default function SummaryPanel({
   return (
     <aside className="flex h-fit flex-col gap-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">AI 요약</h2>
+        <h2 className="font-semibold">{dict.heading}</h2>
         <div
           role="tablist"
-          aria-label="요약 기간"
+          aria-label={dict.periodTabsLabel}
           className="flex rounded border border-black/15 text-sm dark:border-white/20"
         >
           {PERIOD_TABS.map((tab) => (
@@ -121,7 +124,7 @@ export default function SummaryPanel({
 
       <div suppressHydrationWarning>
         <p className="text-xs font-medium text-black/50 dark:text-white/50">
-          이 기간의 할 일 {periodTodos.length}개
+          {dict.todoCount(periodTodos.length)}
         </p>
         {periodTodos.length > 0 && (
           <ul className="mt-1 flex flex-col gap-1">
@@ -159,9 +162,7 @@ export default function SummaryPanel({
         disabled={isPending}
         className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
       >
-        {isPending
-          ? "요약 생성 중…"
-          : `${period === "day" ? "하루" : "일주일"} 요약 생성`}
+        {isPending ? dict.generating : dict.generate(period)}
       </button>
 
       {error && (
@@ -189,7 +190,7 @@ export default function SummaryPanel({
           <p className="text-sm leading-relaxed">{renderBold(current.summary)}</p>
           <div className="rounded border border-black/10 bg-black/[.03] px-3 py-2 dark:border-white/15 dark:bg-white/[.06]">
             <p className="text-xs font-medium text-black/50 dark:text-white/50">
-              조언
+              {dict.adviceLabel}
             </p>
             <p className="mt-1 text-sm leading-relaxed">
               {renderBold(current.advice)}
@@ -199,12 +200,12 @@ export default function SummaryPanel({
             suppressHydrationWarning
             className="text-xs text-black/40 dark:text-white/40"
           >
-            생성: {formatDateTime(current.requestedAt)}
+            {dict.generatedAtLabel}: {formatDateTime(current.requestedAt)}
           </time>
         </div>
       ) : (
         <p className="py-6 text-center text-sm text-black/40 dark:text-white/40">
-          아직 요약이 없습니다. 위 버튼으로 생성해보세요.
+          {dict.empty}
         </p>
       )}
     </aside>

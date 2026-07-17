@@ -14,6 +14,7 @@ import {
   type FingerprintTodo,
 } from "@/lib/summary-fingerprint";
 import { seoulDayRange, seoulWeekEnd } from "@/lib/seoul-time";
+import { getDictionary, getLocale } from "@/lib/i18n/locale";
 
 export type TodoSummary = {
   period: string;
@@ -36,9 +37,11 @@ export async function summarizeTodos(
   period: SummaryPeriod,
 ): Promise<SummarizeResult> {
   const userId = await requireUserId();
+  const locale = await getLocale();
+  const { errors } = getDictionary(locale).summary;
 
   if (period !== "day" && period !== "week") {
-    return { ok: false, error: "기간은 하루 또는 일주일만 선택할 수 있습니다." };
+    return { ok: false, error: errors.invalidPeriod };
   }
 
   const now = new Date();
@@ -67,7 +70,7 @@ export async function summarizeTodos(
   });
 
   if (todos.length === 0) {
-    return { ok: false, error: "요약할 미완료 할 일이 없습니다." };
+    return { ok: false, error: errors.noTodos };
   }
 
   // Dedup guard: if the exact same todos (including overdue state) were
@@ -109,7 +112,7 @@ export async function summarizeTodos(
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock) {
       console.error("summarizeTodos: no text block", response.stop_reason);
-      return { ok: false, error: "요약 결과를 받지 못했습니다. 다시 시도해주세요." };
+      return { ok: false, error: errors.noText };
     }
 
     const parsed = JSON.parse(textBlock.text) as { result: TodoSummary };
@@ -140,21 +143,21 @@ export async function summarizeTodos(
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       console.error("summarizeTodos: authentication error", error.message);
-      return { ok: false, error: "AI 서비스 인증에 실패했습니다. 관리자에게 문의해주세요." };
+      return { ok: false, error: errors.authFailed };
     }
     if (error instanceof Anthropic.RateLimitError) {
       console.error("summarizeTodos: rate limited", error.message);
-      return { ok: false, error: "요청이 많습니다. 잠시 후 다시 시도해주세요." };
+      return { ok: false, error: errors.rateLimited };
     }
     if (error instanceof Anthropic.APIConnectionError) {
       console.error("summarizeTodos: connection/timeout error", error.message);
-      return { ok: false, error: "요약 요청이 시간을 초과했습니다. 잠시 후 다시 시도해주세요." };
+      return { ok: false, error: errors.timeout };
     }
     if (error instanceof Anthropic.APIError) {
       console.error("summarizeTodos: API error", error.status, error.message);
-      return { ok: false, error: "요약 생성에 실패했습니다. 잠시 후 다시 시도해주세요." };
+      return { ok: false, error: errors.apiFailed };
     }
     console.error("summarizeTodos: unexpected error", error);
-    return { ok: false, error: "요약 생성 중 문제가 발생했습니다. 다시 시도해주세요." };
+    return { ok: false, error: errors.unexpected };
   }
 }

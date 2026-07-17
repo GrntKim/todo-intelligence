@@ -1,7 +1,11 @@
+import { getDictionary, getLocale } from "@/lib/i18n/locale";
+
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL;
 const GITHUB_URL = process.env.GITHUB_URL;
 
-export default function SiteFooter() {
+export default async function SiteFooter() {
+  const dict = getDictionary(await getLocale());
+
   return (
     <footer className="mt-auto border-t border-black/10 dark:border-white/15">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between p-4 text-sm text-black/60 dark:text-white/60">
@@ -10,7 +14,7 @@ export default function SiteFooter() {
           {CONTACT_EMAIL && (
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              aria-label="이메일"
+              aria-label={dict.footer.emailLabel}
               className="hover:text-black dark:hover:text-white"
             >
               <svg
@@ -33,7 +37,7 @@ export default function SiteFooter() {
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="GitHub"
+              aria-label={dict.footer.githubLabel}
               className="hover:text-black dark:hover:text-white"
             >
               <svg

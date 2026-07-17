@@ -9,6 +9,7 @@ import {
   updateTodo,
 } from "@/app/actions/todos";
 import { formatDateTime } from "@/lib/format";
+import { dictionaries, type Dictionary, type Locale } from "@/lib/i18n/dictionaries";
 
 type OptimisticTodo = Todo & { pending?: boolean };
 
@@ -40,7 +41,14 @@ function reducer(
   }
 }
 
-export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
+export default function TodoApp({
+  initialTodos,
+  locale,
+}: {
+  initialTodos: Todo[];
+  locale: Locale;
+}) {
+  const dict = dictionaries[locale].todo;
   const [optimisticTodos, applyOptimistic] = useOptimistic(
     initialTodos as OptimisticTodo[],
     reducer,
@@ -129,14 +137,14 @@ export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
           name="title"
           required
           maxLength={50}
-          placeholder="제목 (50자 이내)"
+          placeholder={dict.titlePlaceholder}
           className="rounded border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
         />
         <textarea
           name="content"
           maxLength={200}
           rows={2}
-          placeholder="내용 (200자 이내)"
+          placeholder={dict.contentPlaceholder}
           className="rounded border border-black/15 bg-transparent px-3 py-2 text-sm dark:border-white/20"
         />
         <div className="flex items-center gap-2">
@@ -150,7 +158,7 @@ export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
             disabled={isPending}
             className="ml-auto rounded bg-foreground px-4 py-1.5 text-sm font-medium text-background disabled:opacity-50"
           >
-            {isPending ? "저장 중…" : "추가"}
+            {isPending ? dict.saving : dict.add}
           </button>
         </div>
       </form>
@@ -167,13 +175,14 @@ export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
       <ul className="flex flex-col gap-2">
         {optimisticTodos.length === 0 && (
           <li className="py-8 text-center text-sm text-black/40 dark:text-white/40">
-            할 일이 없습니다. 위에서 추가해보세요.
+            {dict.empty}
           </li>
         )}
         {optimisticTodos.map((todo) => (
           <TodoItem
             key={todo.id}
             todo={todo}
+            dict={dict}
             onToggle={() => handleToggle(todo)}
             onDelete={() => handleDelete(todo.id)}
             onUpdate={(formData) => handleUpdate(todo.id, formData)}
@@ -186,11 +195,13 @@ export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
 
 function TodoItem({
   todo,
+  dict,
   onToggle,
   onDelete,
   onUpdate,
 }: {
   todo: OptimisticTodo;
+  dict: Dictionary["todo"];
   onToggle: () => void;
   onDelete: () => void;
   onUpdate: (formData: FormData) => void;
@@ -234,13 +245,13 @@ function TodoItem({
                 onClick={() => setEditing(false)}
                 className="rounded px-3 py-1 text-sm text-black/60 dark:text-white/60"
               >
-                취소
+                {dict.cancel}
               </button>
               <button
                 type="submit"
                 className="rounded bg-foreground px-3 py-1 text-sm font-medium text-background"
               >
-                저장
+                {dict.save}
               </button>
             </div>
           </div>
@@ -259,7 +270,7 @@ function TodoItem({
         type="checkbox"
         checked={todo.completed}
         onChange={onToggle}
-        aria-label={`${todo.title} 완료 여부`}
+        aria-label={`${todo.title} ${dict.completedAriaSuffix}`}
         className="mt-1 size-4 accent-foreground"
       />
       <div className="min-w-0 flex-1">
@@ -280,7 +291,7 @@ function TodoItem({
             suppressHydrationWarning
             className="mt-1 block text-xs text-black/40 dark:text-white/40"
           >
-            마감: {formatDateTime(todo.due)}
+            {dict.dueLabel}: {formatDateTime(todo.due)}
           </time>
         )}
       </div>
@@ -290,14 +301,14 @@ function TodoItem({
           onClick={() => setEditing(true)}
           className="rounded px-2 py-1 text-xs text-black/60 hover:bg-black/5 dark:text-white/60 dark:hover:bg-white/10"
         >
-          수정
+          {dict.edit}
         </button>
         <button
           type="button"
           onClick={onDelete}
           className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
         >
-          삭제
+          {dict.delete}
         </button>
       </div>
     </li>

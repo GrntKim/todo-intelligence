@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
+import { getDictionary, getLocale } from "@/lib/i18n/locale";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 
 // Prisma connects as the postgres role and bypasses RLS, so every query in
 // this file MUST scope its where clause with the session userId. Single-row
@@ -20,23 +22,26 @@ type TodoInput = {
   due: string | null; // ISO string or null
 };
 
-function validateInput(input: TodoInput):
+function validateInput(
+  input: TodoInput,
+  errors: Dictionary["todo"]["errors"],
+):
   | { ok: true; data: { title: string; content: string; due: Date | null } }
   | { ok: false; error: string } {
   const title = input.title.trim();
   const content = input.content.trim();
 
-  if (title.length === 0) return { ok: false, error: "제목을 입력해주세요." };
+  if (title.length === 0) return { ok: false, error: errors.titleRequired };
   if (title.length > TITLE_MAX)
-    return { ok: false, error: `제목은 ${TITLE_MAX}자 이하여야 합니다.` };
+    return { ok: false, error: errors.titleTooLong(TITLE_MAX) };
   if (content.length > CONTENT_MAX)
-    return { ok: false, error: `내용은 ${CONTENT_MAX}자 이하여야 합니다.` };
+    return { ok: false, error: errors.contentTooLong(CONTENT_MAX) };
 
   let due: Date | null = null;
   if (input.due) {
     due = new Date(input.due);
     if (Number.isNaN(due.getTime()))
-      return { ok: false, error: "마감일 형식이 올바르지 않습니다." };
+      return { ok: false, error: errors.invalidDue };
   }
 
   return { ok: true, data: { title, content, due } };
@@ -44,8 +49,9 @@ function validateInput(input: TodoInput):
 
 export async function createTodo(input: TodoInput): Promise<ActionResult> {
   const userId = await requireUserId();
+  const { errors } = getDictionary(await getLocale()).todo;
 
-  const validated = validateInput(input);
+  const validated = validateInput(input, errors);
   if (!validated.ok) return validated;
 
   try {
@@ -53,7 +59,7 @@ export async function createTodo(input: TodoInput): Promise<ActionResult> {
       data: { ...validated.data, userId },
     });
   } catch {
-    return { ok: false, error: "할 일을 추가하지 못했습니다." };
+    return { ok: false, error: errors.createFailed };
   }
 
   revalidatePath("/");
@@ -65,16 +71,16 @@ export async function toggleTodo(
   completed: boolean,
 ): Promise<ActionResult> {
   const userId = await requireUserId();
+  const { errors } = getDictionary(await getLocale()).todo;
 
   try {
     const { count } = await prisma.todo.updateMany({
       where: { id, userId },
       data: { completed },
     });
-    if (count === 0)
-      return { ok: false, error: "할 일을 찾을 수 없습니다." };
+    if (count === 0) return { ok: false, error: errors.notFound };
   } catch {
-    return { ok: false, error: "상태를 변경하지 못했습니다." };
+    return { ok: false, error: errors.toggleFailed };
   }
 
   revalidatePath("/");
@@ -86,8 +92,9 @@ export async function updateTodo(
   input: TodoInput,
 ): Promise<ActionResult> {
   const userId = await requireUserId();
+  const { errors } = getDictionary(await getLocale()).todo;
 
-  const validated = validateInput(input);
+  const validated = validateInput(input, errors);
   if (!validated.ok) return validated;
 
   try {
@@ -95,10 +102,9 @@ export async function updateTodo(
       where: { id, userId },
       data: validated.data,
     });
-    if (count === 0)
-      return { ok: false, error: "할 일을 찾을 수 없습니다." };
+    if (count === 0) return { ok: false, error: errors.notFound };
   } catch {
-    return { ok: false, error: "할 일을 수정하지 못했습니다." };
+    return { ok: false, error: errors.updateFailed };
   }
 
   revalidatePath("/");
@@ -107,15 +113,15 @@ export async function updateTodo(
 
 export async function deleteTodo(id: string): Promise<ActionResult> {
   const userId = await requireUserId();
+  const { errors } = getDictionary(await getLocale()).todo;
 
   try {
     const { count } = await prisma.todo.deleteMany({
       where: { id, userId },
     });
-    if (count === 0)
-      return { ok: false, error: "할 일을 찾을 수 없습니다." };
+    if (count === 0) return { ok: false, error: errors.notFound };
   } catch {
-    return { ok: false, error: "할 일을 삭제하지 못했습니다." };
+    return { ok: false, error: errors.deleteFailed };
   }
 
   revalidatePath("/");

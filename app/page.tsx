@@ -8,6 +8,7 @@ import SummaryPanel, {
 } from "@/app/components/summary-panel";
 import type { TodoSummary } from "@/app/actions/summarize";
 import type { SummaryPeriod } from "@/lib/prompts/summary";
+import { getDictionary, getLocale } from "@/lib/i18n/locale";
 
 async function latestSummary(
   userId: string,
@@ -27,6 +28,8 @@ async function latestSummary(
 
 export default async function Home() {
   const userId = await requireUserId();
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
 
   // Request timestamp for the summary panel's period filter. Intentional in
   // a per-request server component; the purity rule targets client re-renders.
@@ -50,22 +53,23 @@ export default async function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">할 일</h1>
+        <h1 className="text-2xl font-semibold">{dict.home.title}</h1>
         <form action={signOut}>
           <button
             type="submit"
             className="text-sm text-black/60 underline dark:text-white/60"
           >
-            로그아웃
+            {dict.home.signOut}
           </button>
         </form>
       </header>
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_340px]">
-        <TodoApp initialTodos={todos} />
+        <TodoApp initialTodos={todos} locale={locale} />
         <SummaryPanel
           initialSummaries={initialSummaries}
           todos={todos}
           now={now}
+          locale={locale}
         />
       </div>
     </main>

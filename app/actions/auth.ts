@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getDictionary, getLocale } from "@/lib/i18n/locale";
 
 export type AuthState = { error: string } | null;
 
@@ -39,7 +40,8 @@ export async function signUp(
 
   // When email confirmation is enabled, no session is created yet.
   if (!data.session) {
-    return { error: "확인 메일을 보냈습니다. 메일함을 확인해주세요." };
+    const dict = getDictionary(await getLocale());
+    return { error: dict.auth.confirmationSent };
   }
 
   revalidatePath("/", "layout");
