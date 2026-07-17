@@ -8,6 +8,7 @@ import {
   toggleTodo,
   updateTodo,
 } from "@/app/actions/todos";
+import { formatDateTime } from "@/lib/format";
 
 type OptimisticTodo = Todo & { pending?: boolean };
 
@@ -37,12 +38,6 @@ function reducer(
     case "delete":
       return todos.filter((t) => t.id !== action.id);
   }
-}
-
-function formatDue(due: Date): string {
-  const d = new Date(due);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export default function TodoApp({ initialTodos }: { initialTodos: Todo[] }) {
@@ -230,7 +225,7 @@ function TodoItem({
             <input
               name="due"
               type="datetime-local"
-              defaultValue={todo.due ? formatDue(todo.due).replace(" ", "T") : ""}
+              defaultValue={todo.due ? formatDateTime(todo.due).replace(" ", "T") : ""}
               className="rounded border border-black/15 bg-transparent px-2 py-1 text-sm dark:border-white/20"
             />
             <div className="ml-auto flex gap-2">
@@ -285,7 +280,7 @@ function TodoItem({
             suppressHydrationWarning
             className="mt-1 block text-xs text-black/40 dark:text-white/40"
           >
-            마감: {formatDue(todo.due)}
+            마감: {formatDateTime(todo.due)}
           </time>
         )}
       </div>
