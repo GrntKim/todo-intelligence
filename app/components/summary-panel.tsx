@@ -3,8 +3,14 @@
 import { useState, useTransition } from "react";
 import type { Todo } from "@prisma/client";
 import { summarizeTodos, type TodoSummary } from "@/app/actions/summarize";
-import { PERIOD_MS, type SummaryPeriod } from "@/lib/prompts/summary";
+import type { SummaryPeriod } from "@/lib/prompts/summary";
 import { formatDateTime } from "@/lib/format";
+import {
+  seoulDateLabel,
+  seoulDayRange,
+  seoulWeekEnd,
+  seoulWeekStart,
+} from "@/lib/seoul-time";
 
 export type SummaryView = TodoSummary & { requestedAt: string };
 export type InitialSummaries = Partial<Record<SummaryPeriod, SummaryView>>;
@@ -39,12 +45,25 @@ export default function SummaryPanel({
 
   const current = summaries[period];
 
-  // Same filter the summarize action applies server-side: incomplete todos
-  // due within the period (overdue included) or with no due date.
-  const periodEnd = now + PERIOD_MS[period];
-  const periodTodos = todos.filter(
-    (t) => !t.completed && (t.due === null || new Date(t.due).getTime() <= periodEnd),
-  );
+  // Same calendar-based membership rule the summarize action applies
+  // server-side: day = due falls exactly on today (Seoul), no undated todos;
+  // week = due any time through this Sunday (Seoul), undated todos included.
+  const nowDate = new Date(now);
+  const periodTodos = todos.filter((t) => {
+    if (t.completed) return false;
+    if (period === "day") {
+      if (t.due === null) return false;
+      const { start, end } = seoulDayRange(nowDate);
+      const dueTime = new Date(t.due).getTime();
+      return dueTime >= start.getTime() && dueTime <= end.getTime();
+    }
+    return t.due === null || new Date(t.due).getTime() <= seoulWeekEnd(nowDate).getTime();
+  });
+
+  const periodRangeLabel =
+    period === "day"
+      ? seoulDateLabel(nowDate)
+      : `${seoulDateLabel(seoulWeekStart(nowDate))} ~ ${seoulDateLabel(seoulWeekEnd(nowDate))}`;
 
   function handleGenerate() {
     setError(null);
@@ -92,6 +111,13 @@ export default function SummaryPanel({
           ))}
         </div>
       </div>
+
+      <p
+        suppressHydrationWarning
+        className="text-xs text-black/50 dark:text-white/50"
+      >
+        {periodRangeLabel}
+      </p>
 
       <div suppressHydrationWarning>
         <p className="text-xs font-medium text-black/50 dark:text-white/50">

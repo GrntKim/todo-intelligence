@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import {
   buildSummaryUserPrompt,
-  PERIOD_MS,
   SUMMARY_OUTPUT_SCHEMA,
   SUMMARY_SYSTEM_PROMPT,
   type SummaryPeriod,
@@ -14,6 +13,7 @@ import {
   summaryFingerprint,
   type FingerprintTodo,
 } from "@/lib/summary-fingerprint";
+import { seoulDayRange, seoulWeekEnd } from "@/lib/seoul-time";
 
 export type TodoSummary = {
   period: string;
@@ -42,16 +42,26 @@ export async function summarizeTodos(
   }
 
   const now = new Date();
-  const periodEnd = new Date(now.getTime() + PERIOD_MS[period]);
 
-  // Incomplete todos due within the period (including overdue) or with no due
-  // date. userId filter is mandatory — Prisma bypasses RLS.
+  // Calendar-based periods in Seoul time. Day: due must fall exactly on
+  // today's date, and undated todos are excluded. Week: due any time up
+  // through this Sunday (no lower bound, so anything overdue from before
+  // this week still surfaces), undated todos included.
+  // userId filter is mandatory in both — Prisma bypasses RLS.
+  const dayRange = seoulDayRange(now);
   const todos = await prisma.todo.findMany({
-    where: {
-      userId,
-      completed: false,
-      OR: [{ due: null }, { due: { lte: periodEnd } }],
-    },
+    where:
+      period === "day"
+        ? {
+            userId,
+            completed: false,
+            due: { gte: dayRange.start, lte: dayRange.end },
+          }
+        : {
+            userId,
+            completed: false,
+            OR: [{ due: null }, { due: { lte: seoulWeekEnd(now) } }],
+          },
     orderBy: { due: "asc" },
     select: { id: true, title: true, content: true, due: true },
   });
