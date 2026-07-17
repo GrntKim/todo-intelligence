@@ -53,7 +53,7 @@ export async function summarizeTodos(
       OR: [{ due: null }, { due: { lte: periodEnd } }],
     },
     orderBy: { due: "asc" },
-    select: { title: true, content: true, due: true },
+    select: { id: true, title: true, content: true, due: true },
   });
 
   if (todos.length === 0) {
@@ -80,6 +80,29 @@ export async function summarizeTodos(
     }
 
     const parsed = JSON.parse(textBlock.text) as { result: TodoSummary };
+
+    // Persist the summary with a snapshot of the todos it covered.
+    // Best-effort: the AI call already succeeded, so a failed write is only
+    // logged — the user still gets their summary.
+    try {
+      await prisma.summary.create({
+        data: {
+          userId,
+          period,
+          summary: parsed.result,
+          todos: todos.map((t) => ({
+            id: t.id,
+            title: t.title,
+            content: t.content,
+            due: t.due ? t.due.toISOString() : null,
+          })),
+          requestedAt: now,
+        },
+      });
+    } catch (persistError) {
+      console.error("summarizeTodos: failed to persist summary", persistError);
+    }
+
     return { ok: true, data: parsed.result };
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {

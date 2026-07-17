@@ -13,6 +13,25 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum SummaryPeriod {
+  day
+  week
+
+  @@map("summary_period")
+}
+
+model Summary {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  period      SummaryPeriod
+  summary     Json // AI output as-is: { period, summary, advice }
+  todos       Json // snapshot of the todos the summary covered: [{ id, title, content, due }]
+  requestedAt DateTime      @default(now()) @map("requested_at") @db.Timestamptz(6)
+
+  @@index([userId, requestedAt(sort: Desc)])
+  @@map("summaries")
+}
+
 model Todo {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String    @map("user_id") @db.Uuid
