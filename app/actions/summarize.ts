@@ -17,7 +17,7 @@ export type TodoSummary = {
 };
 
 export type SummarizeResult =
-  | { ok: true; data: TodoSummary }
+  | { ok: true; data: TodoSummary & { requestedAt: string } }
   | { ok: false; error: string };
 
 const PERIOD_MS: Record<SummaryPeriod, number> = {
@@ -103,7 +103,7 @@ export async function summarizeTodos(
       console.error("summarizeTodos: failed to persist summary", persistError);
     }
 
-    return { ok: true, data: parsed.result };
+    return { ok: true, data: { ...parsed.result, requestedAt: now.toISOString() } };
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       console.error("summarizeTodos: authentication error", error.message);
