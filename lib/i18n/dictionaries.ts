@@ -2,6 +2,7 @@ export type Locale = "ko" | "en";
 
 export type Dictionary = {
   languageSwitcher: { label: string; ko: string; en: string };
+  themeSwitcher: { label: string; light: string; dark: string; system: string };
   footer: { emailLabel: string; githubLabel: string };
   metadata: { title: string; description: string };
   home: { title: string; signOut: string };
@@ -69,6 +70,12 @@ export type Dictionary = {
 export const dictionaries: Record<Locale, Dictionary> = {
   ko: {
     languageSwitcher: { label: "언어 선택", ko: "한국어", en: "English" },
+    themeSwitcher: {
+      label: "테마 선택",
+      light: "라이트",
+      dark: "다크",
+      system: "시스템",
+    },
     footer: { emailLabel: "이메일", githubLabel: "GitHub" },
     metadata: {
       title: "todo-intelligence",
@@ -137,6 +144,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
   },
   en: {
     languageSwitcher: { label: "Language", ko: "한국어", en: "English" },
+    themeSwitcher: {
+      label: "Theme",
+      light: "Light",
+      dark: "Dark",
+      system: "System",
+    },
     footer: { emailLabel: "Email", githubLabel: "GitHub" },
     metadata: {
       title: "todo-intelligence",

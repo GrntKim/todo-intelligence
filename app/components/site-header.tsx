@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDictionary, getLocale } from "@/lib/i18n/locale";
+import { getTheme } from "@/lib/theme";
 import LanguageSwitcher from "@/app/components/language-switcher";
+import ThemeSwitcher from "@/app/components/theme-switcher";
 
 export default async function SiteHeader() {
   const supabase = await createClient();
@@ -9,6 +11,7 @@ export default async function SiteHeader() {
   const email = data?.claims.email as string | undefined;
   const locale = await getLocale();
   const dict = getDictionary(locale);
+  const theme = await getTheme();
 
   return (
     <header className="border-b border-black/10 dark:border-white/15">
@@ -22,6 +25,7 @@ export default async function SiteHeader() {
               {email}
             </span>
           )}
+          <ThemeSwitcher current={theme} dict={dict.themeSwitcher} />
           <LanguageSwitcher current={locale} dict={dict.languageSwitcher} />
         </div>
       </div>
