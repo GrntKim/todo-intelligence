@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import type { Todo } from "@prisma/client";
 import { summarizeTodos, type TodoSummary } from "@/app/actions/summarize";
-import type { SummaryPeriod } from "@/lib/prompts/summary";
+import { PERIOD_MS, type SummaryPeriod } from "@/lib/prompts/summary";
 import { formatDateTime } from "@/lib/format";
 
 export type SummaryView = TodoSummary & { requestedAt: string };
@@ -23,22 +24,38 @@ function renderBold(text: string) {
 
 export default function SummaryPanel({
   initialSummaries,
+  todos,
+  now,
 }: {
   initialSummaries: InitialSummaries;
+  todos: Todo[];
+  now: number; // server render time — keeps render pure and hydration consistent
 }) {
   const [period, setPeriod] = useState<SummaryPeriod>("day");
   const [summaries, setSummaries] = useState<InitialSummaries>(initialSummaries);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const current = summaries[period];
 
+  // Same filter the summarize action applies server-side: incomplete todos
+  // due within the period (overdue included) or with no due date.
+  const periodEnd = now + PERIOD_MS[period];
+  const periodTodos = todos.filter(
+    (t) => !t.completed && (t.due === null || new Date(t.due).getTime() <= periodEnd),
+  );
+
   function handleGenerate() {
     setError(null);
+    setInfo(null);
     startTransition(async () => {
       const result = await summarizeTodos(period);
       if (result.ok) {
         setSummaries((prev) => ({ ...prev, [period]: result.data }));
+        if (result.cached) {
+          setInfo("할 일이 변하지 않아 마지막 요약을 다시 표시합니다.");
+        }
       } else {
         setError(result.error);
       }
@@ -62,6 +79,7 @@ export default function SummaryPanel({
               onClick={() => {
                 setPeriod(tab.value);
                 setError(null);
+                setInfo(null);
               }}
               className={`px-3 py-1 first:rounded-l last:rounded-r ${
                 period === tab.value
@@ -73,6 +91,40 @@ export default function SummaryPanel({
             </button>
           ))}
         </div>
+      </div>
+
+      <div suppressHydrationWarning>
+        <p className="text-xs font-medium text-black/50 dark:text-white/50">
+          이 기간의 할 일 {periodTodos.length}개
+        </p>
+        {periodTodos.length > 0 && (
+          <ul className="mt-1 flex flex-col gap-1">
+            {periodTodos.map((todo) => {
+              const overdue =
+                todo.due !== null && new Date(todo.due).getTime() < now;
+              return (
+                <li
+                  key={todo.id}
+                  className="flex items-baseline justify-between gap-2 text-sm"
+                >
+                  <span className="truncate">{todo.title}</span>
+                  {todo.due && (
+                    <time
+                      suppressHydrationWarning
+                      className={`shrink-0 text-xs ${
+                        overdue
+                          ? "font-medium text-red-600 dark:text-red-400"
+                          : "text-black/40 dark:text-white/40"
+                      }`}
+                    >
+                      {formatDateTime(todo.due)}
+                    </time>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
 
       <button
@@ -92,6 +144,15 @@ export default function SummaryPanel({
           className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300"
         >
           {error}
+        </p>
+      )}
+
+      {info && (
+        <p
+          role="status"
+          className="rounded border border-black/10 bg-black/[.03] px-3 py-2 text-sm text-black/60 dark:border-white/15 dark:bg-white/[.06] dark:text-white/60"
+        >
+          {info}
         </p>
       )}
 

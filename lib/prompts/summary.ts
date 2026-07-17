@@ -5,6 +5,11 @@ export const PERIOD_LABEL: Record<SummaryPeriod, string> = {
   week: "일주일",
 };
 
+export const PERIOD_MS: Record<SummaryPeriod, number> = {
+  day: 24 * 60 * 60 * 1000,
+  week: 7 * 24 * 60 * 60 * 1000,
+};
+
 export const SUMMARY_SYSTEM_PROMPT = `당신은 사용자의 할 일 목록을 요약하는 비서입니다.
 
 할일 목록을 읽어 우선순위와 한 줄 조언을 담아 요약해주세요.

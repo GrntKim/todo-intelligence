@@ -5,10 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
 import {
   buildSummaryUserPrompt,
+  PERIOD_MS,
   SUMMARY_OUTPUT_SCHEMA,
   SUMMARY_SYSTEM_PROMPT,
   type SummaryPeriod,
 } from "@/lib/prompts/summary";
+import {
+  summaryFingerprint,
+  type FingerprintTodo,
+} from "@/lib/summary-fingerprint";
 
 export type TodoSummary = {
   period: string;
@@ -17,13 +22,8 @@ export type TodoSummary = {
 };
 
 export type SummarizeResult =
-  | { ok: true; data: TodoSummary & { requestedAt: string } }
+  | { ok: true; data: TodoSummary & { requestedAt: string }; cached?: boolean }
   | { ok: false; error: string };
-
-const PERIOD_MS: Record<SummaryPeriod, number> = {
-  day: 24 * 60 * 60 * 1000,
-  week: 7 * 24 * 60 * 60 * 1000,
-};
 
 // Server-only: the API key never reaches the client — this module is
 // 'use server' and the key is read from a non-NEXT_PUBLIC env var.
@@ -58,6 +58,29 @@ export async function summarizeTodos(
 
   if (todos.length === 0) {
     return { ok: false, error: "요약할 미완료 할 일이 없습니다." };
+  }
+
+  // Dedup guard: if the exact same todos (including overdue state) were
+  // already summarized by the latest stored summary for this user+period,
+  // reuse it instead of spending another API call.
+  const latest = await prisma.summary.findFirst({
+    where: { userId, period },
+    orderBy: { requestedAt: "desc" },
+    select: { summary: true, todos: true, requestedAt: true },
+  });
+  if (
+    latest &&
+    summaryFingerprint(todos, now) ===
+      summaryFingerprint(latest.todos as FingerprintTodo[], latest.requestedAt)
+  ) {
+    return {
+      ok: true,
+      cached: true,
+      data: {
+        ...(latest.summary as TodoSummary),
+        requestedAt: latest.requestedAt.toISOString(),
+      },
+    };
   }
 
   try {

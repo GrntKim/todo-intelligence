@@ -28,6 +28,11 @@ async function latestSummary(
 export default async function Home() {
   const userId = await requireUserId();
 
+  // Request timestamp for the summary panel's period filter. Intentional in
+  // a per-request server component; the purity rule targets client re-renders.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+
   const [todos, daySummary, weekSummary] = await Promise.all([
     prisma.todo.findMany({
       where: { userId },
@@ -57,7 +62,11 @@ export default async function Home() {
       </header>
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_340px]">
         <TodoApp initialTodos={todos} />
-        <SummaryPanel initialSummaries={initialSummaries} />
+        <SummaryPanel
+          initialSummaries={initialSummaries}
+          todos={todos}
+          now={now}
+        />
       </div>
     </main>
   );
