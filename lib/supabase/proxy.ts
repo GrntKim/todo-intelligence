@@ -25,11 +25,12 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Do not run code between createServerClient and auth.getUser() —
-  // it refreshes expired tokens and keeps the cookies in sync.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Do not run code between createServerClient and auth.getClaims() —
+  // it refreshes expired tokens and keeps the cookies in sync. getClaims
+  // verifies the JWT locally (no Auth-server round trip unless the token
+  // needs refreshing), unlike getUser which hits the network every request.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   if (!user && !request.nextUrl.pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
