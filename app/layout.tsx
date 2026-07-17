@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "todo.ai",
+  title: "todo-intelligence",
   description: "AI가 요약하고 조언하는 할 일 관리 앱",
 };
 
