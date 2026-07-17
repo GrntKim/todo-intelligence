@@ -14,7 +14,7 @@ export default async function SiteHeader() {
         }`}
       >
         <Link href="/" className="text-xl font-bold">
-          todo.ai
+          todo-intelligence
         </Link>
         {email && (
           <span className="text-sm text-black/60 dark:text-white/60">

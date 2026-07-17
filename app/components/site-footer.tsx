@@ -5,7 +5,7 @@ export default function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-black/10 dark:border-white/15">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between p-4 text-sm text-black/60 dark:text-white/60">
-        <span>&copy; {new Date().getFullYear()} todo.ai</span>
+        <span>&copy; {new Date().getFullYear()} todo-intelligence</span>
         <div className="flex items-center gap-4">
           {CONTACT_EMAIL && (
             <a
