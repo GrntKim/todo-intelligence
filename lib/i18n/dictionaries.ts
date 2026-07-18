@@ -57,6 +57,8 @@ export type Dictionary = {
     errors: {
       invalidPeriod: string;
       noTodos: string;
+      dailyLimitExceeded: string;
+      weeklyLimitExceeded: string;
       authFailed: string;
       rateLimited: string;
       timeout: string;
@@ -133,6 +135,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       errors: {
         invalidPeriod: "기간은 하루 또는 일주일만 선택할 수 있습니다.",
         noTodos: "요약할 미완료 할 일이 없습니다.",
+        dailyLimitExceeded: "일일 요약 생성 한도(10회)를 초과했습니다. 내일 다시 시도해주세요.",
+        weeklyLimitExceeded: "주간 요약 생성 한도(40회)를 초과했습니다. 나중에 다시 시도해주세요.",
         authFailed: "AI 서비스 인증에 실패했습니다. 관리자에게 문의해주세요.",
         rateLimited: "요청이 많습니다. 잠시 후 다시 시도해주세요.",
         timeout: "요약 요청이 시간을 초과했습니다. 잠시 후 다시 시도해주세요.",
@@ -207,6 +211,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       errors: {
         invalidPeriod: "Period must be either day or week.",
         noTodos: "There are no incomplete to-dos to summarize.",
+        dailyLimitExceeded: "Daily summary limit (10) reached. Please try again tomorrow.",
+        weeklyLimitExceeded: "Weekly summary limit (40) reached. Please try again later.",
         authFailed: "AI service authentication failed. Please contact an administrator.",
         rateLimited: "Too many requests. Please try again shortly.",
         timeout: "The summary request timed out. Please try again shortly.",
