@@ -15,6 +15,7 @@ import {
 } from "@/lib/summary-fingerprint";
 import { seoulDayRange, seoulWeekEnd } from "@/lib/seoul-time";
 import { getDictionary, getLocale } from "@/lib/i18n/locale";
+import { getSummaryUsage } from "@/lib/summary-usage";
 
 export type TodoSummary = {
   period: string;
@@ -25,11 +26,6 @@ export type TodoSummary = {
 export type SummarizeResult =
   | { ok: true; data: TodoSummary & { requestedAt: string }; cached?: boolean }
   | { ok: false; error: string };
-
-// Caps actual Anthropic API spend per user — cached (deduped) summaries
-// below don't count since they don't make a new API call.
-const DAILY_LIMIT = 10;
-const WEEKLY_LIMIT = 40;
 
 // Server-only: the API key never reaches the client — this module is
 // 'use server' and the key is read from a non-NEXT_PUBLIC env var.
@@ -101,16 +97,11 @@ export async function summarizeTodos(
     };
   }
 
-  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const [dailyCount, weeklyCount] = await Promise.all([
-    prisma.summary.count({ where: { userId, requestedAt: { gte: dayAgo } } }),
-    prisma.summary.count({ where: { userId, requestedAt: { gte: weekAgo } } }),
-  ]);
-  if (dailyCount >= DAILY_LIMIT) {
+  const { daily, weekly } = await getSummaryUsage(userId);
+  if (daily.used >= daily.limit) {
     return { ok: false, error: errors.dailyLimitExceeded };
   }
-  if (weeklyCount >= WEEKLY_LIMIT) {
+  if (weekly.used >= weekly.limit) {
     return { ok: false, error: errors.weeklyLimitExceeded };
   }
 

@@ -4,6 +4,7 @@ export type Dictionary = {
   languageSwitcher: { label: string; ko: string; en: string };
   themeSwitcher: { label: string; light: string; dark: string; system: string };
   footer: { emailLabel: string; githubLabel: string };
+  emailUsage: { dailyLabel: string; weeklyLabel: string };
   metadata: { title: string; description: string };
   home: { title: string; signOut: string };
   auth: {
@@ -79,6 +80,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       system: "시스템",
     },
     footer: { emailLabel: "이메일", githubLabel: "GitHub" },
+    emailUsage: { dailyLabel: "일일 사용량", weeklyLabel: "주간 사용량" },
     metadata: {
       title: "todo-intelligence",
       description: "AI가 요약하고 조언하는 할 일 관리 앱",
@@ -155,6 +157,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       system: "System",
     },
     footer: { emailLabel: "Email", githubLabel: "GitHub" },
+    emailUsage: { dailyLabel: "Daily usage", weeklyLabel: "Weekly usage" },
     metadata: {
       title: "todo-intelligence",
       description: "A to-do app with AI-generated summaries and advice",
